@@ -1,6 +1,8 @@
 import { AIService, AIServiceConfig, AIServiceResponse, QuizGenerationParams, FlashcardGenerationParams } from '../types';
 import { createQuizPrompt } from '../../quiz/prompt';
 import { createFlashcardPrompt } from '../../flashcards/prompt';
+import { TextSanitizer } from '../../text/sanitizer';
+import { toast } from 'react-hot-toast';
 
 export class AzureOpenAIService implements AIService {
   private apiKey: string;
@@ -11,38 +13,6 @@ export class AzureOpenAIService implements AIService {
     this.apiKey = config.apiKey;
     this.endpoint = config.endpoint;
     this.modelName = config.modelName;
-  }
-
-  private async makeRequest(prompt: string): Promise<AIServiceResponse> {
-    const response = await fetch(
-      `${this.endpoint}/openai/deployments/${this.modelName}/chat/completions?api-version=2023-03-15-preview`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': this.apiKey,
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: prompt }],
-          response_format: { type: 'json_object' },
-          temperature: 0.3,
-          max_tokens: 2000,
-          top_p: 1,
-          frequency_penalty: 0,
-          presence_penalty: 0,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Azure OpenAI API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return {
-      text: data.choices[0].message.content,
-      usage: data.usage,
-    };
   }
 
   async generateFlashcards(params: FlashcardGenerationParams): Promise<AIServiceResponse> {
@@ -56,7 +26,7 @@ export class AzureOpenAIService implements AIService {
   }
 
   async generateEmbeddings(text: string): Promise<number[]> {
-    // Implement embeddings generation if needed
+    // Implement if needed
     return [];
   }
 
@@ -64,5 +34,77 @@ export class AzureOpenAIService implements AIService {
     const prompt = `Context: ${context}\n\nQuestion: ${question}`;
     const response = await this.makeRequest(prompt);
     return response.text;
+  }
+
+  private async makeRequest(prompt: string): Promise<AIServiceResponse> {
+    try {
+      // Sanitize the prompt before sending
+      const sanitizedPrompt = TextSanitizer.sanitize(prompt);
+      
+      // Validate the sanitized prompt
+      const validationError = TextSanitizer.validateText(sanitizedPrompt);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+
+      const apiUrl = 'https://benevolent-biscochitos-7e0f3b.netlify.app/.netlify/functions/generate';
+      
+      const response = await fetch(
+        apiUrl,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // 'Origin': window.location.origin,
+            // 'Access-Control-Allow-Origin': '*',
+          },
+          // credentials: 'include',
+          mode: 'cors', 
+          body: JSON.stringify({
+            prompt: sanitizedPrompt
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || response.statusText;
+        
+        // Handle content filtering specifically
+        if (errorMessage.includes('content management policy')) {
+          toast.error('The text contains invalid or inappropriate content. Please try with different content.');
+          throw new Error('Content filtering policy triggered. Please modify the content and try again.');
+        }
+
+        // Handle other errors
+        toast.error(this.getErrorMessage(response.status, errorMessage));
+        throw new Error(this.getErrorMessage(response.status, errorMessage));
+      }
+
+      const data = await response.json();
+      return {
+        text: data.choices[0].message.content,
+        usage: data.usage,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process request';
+      toast.error(errorMessage);
+      throw error;
+    }
+  }
+
+  private getErrorMessage(status: number, message: string): string {
+    switch (status) {
+      case 401:
+        return 'Authentication failed. Please check your API key.';
+      case 429:
+        return 'Too many requests. Please try again later.';
+      case 500:
+        return 'Azure OpenAI service error. Please try again.';
+      case 503:
+        return 'Azure OpenAI service is temporarily unavailable.';
+      default:
+        return `Azure OpenAI API error: ${message}`;
+    }
   }
 }

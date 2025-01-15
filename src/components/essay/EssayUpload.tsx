@@ -57,7 +57,7 @@ const EssayUpload: React.FC<EssayUploadProps> = ({
     },
     accept: {
       'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
-      'application/pdf': ['.pdf'],
+      // 'application/pdf': ['.pdf'],
       'text/plain': ['.txt']
     },
     multiple: false,

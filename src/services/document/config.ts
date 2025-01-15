@@ -1,20 +1,6 @@
-import { SupportedFileType } from './types';
-
 export const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-export const ALL_SUPPORTED_TYPES: SupportedFileType[] = [
-  'application/pdf',
-  'text/plain',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'image/png',
-  'image/jpeg',
-  'image/webp'
-];
-
-export const FILE_TYPE_EXTENSIONS = {
+export const SUPPORTED_FILE_TYPES = {
   'application/pdf': '.pdf',
   'text/plain': '.txt',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
@@ -22,6 +8,15 @@ export const FILE_TYPE_EXTENSIONS = {
   'application/vnd.ms-powerpoint': '.ppt',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
   'image/png': '.png',
-  'image/jpeg': '.jpg,.jpeg',
+  'image/jpeg': ['.jpg', '.jpeg'],
   'image/webp': '.webp'
-};
+} as const;
+
+export type SupportedFileType = keyof typeof SUPPORTED_FILE_TYPES;
+
+export function getAcceptedFileTypes(): Record<string, string[]> {
+  return Object.entries(SUPPORTED_FILE_TYPES).reduce((acc, [type, extensions]) => {
+    acc[type] = Array.isArray(extensions) ? extensions : [extensions];
+    return acc;
+  }, {} as Record<string, string[]>);
+}

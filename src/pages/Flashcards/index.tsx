@@ -1,29 +1,31 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import EssayUpload from '../../components/essay/EssayUpload';
+import FileUpload from '../../components/Upload/FileUpload';
 import FlashcardViewer from './components/FlashcardViewer';
 import FlashcardOptions from './components/FlashcardOptions';
-import { generateFlashcards } from '../../services/flashcards/generator';
+import { AITextProcessor } from '../../services/ai/textProcessor';
 import { Flashcard } from '../../types/flashcard';
 
 const FlashcardsPage = () => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [numCards, setNumCards] = useState<number | undefined>();
-  const navigate = useNavigate();
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleUpload = async (content: string) => {
     setIsProcessing(true);
     try {
-      const cards = await generateFlashcards(content, numCards);
+      const cards = await AITextProcessor.generateFlashcards(content, {
+        numCards,
+        onProgress: setUploadProgress
+      });
       setFlashcards(cards);
       toast.success('Flashcards generated successfully!');
     } catch (error) {
-      toast.error('Failed to generate flashcards');
-      console.error('Flashcard generation error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to generate flashcards');
     } finally {
       setIsProcessing(false);
+      setUploadProgress(0);
     }
   };
 
@@ -41,11 +43,19 @@ const FlashcardsPage = () => {
 
         {flashcards.length === 0 ? (
           <div className="space-y-8">
-            <EssayUpload
+            <FileUpload
               onUpload={handleUpload}
               isProcessing={isProcessing}
               label="Upload Study Material"
             />
+            {uploadProgress > 0 && (
+              <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                <div 
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            )}
             <FlashcardOptions
               numCards={numCards}
               onNumCardsChange={setNumCards}

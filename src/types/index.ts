@@ -1,35 +1,30 @@
-export interface User {
+// Add these new types
+export interface UserFile {
   id: string;
-  email: string;
+  userId: string;
+  name: string;
+  type: string;
+  size: number;
+  url: string;
+  createdAt: string;
 }
 
+export interface UserActivity {
+  id: string;
+  userId: string;
+  type: 'quiz' | 'essay' | 'flashcard' | 'document';
+  action: string;
+  metadata: Record<string, any>;
+  createdAt: string;
+}
+
+// Update existing types
 export interface Document {
   id: string;
   title: string;
   content: string;
   userId: string;
+  fileId: string;
   createdAt: string;
   embeddings?: number[];
-}
-
-export type QuizDifficulty = 'easy' | 'medium' | 'hard';
-export type QuestionType = 'multiple-choice' | 'short-answer' | 'one-word' | 'long-answer' | 'true-false';
-
-export interface Quiz {
-  id: string;
-  questions: Question[];
-  score?: number;
-  totalQuestions: number;
-  content?: string;           // Added for regeneration
-  difficulty?: QuizDifficulty; // Added for regeneration
-}
-
-export interface Question {
-  id: string;
-  type: QuestionType;
-  question: string;
-  options?: string[];
-  correctAnswer: string;
-  userAnswer?: string;
-  explanation?: string;
 }

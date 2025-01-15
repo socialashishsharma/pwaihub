@@ -1,6 +1,8 @@
 import Tesseract from 'tesseract.js';
 import { ProcessedDocument } from '../types';
 import { DocumentProcessingError } from '../errors';
+import { TextSanitizer } from '../../text/sanitizer';
+import { toast } from 'react-hot-toast';
 
 export async function processImage(file: File): Promise<ProcessedDocument> {
   try {
@@ -16,14 +18,17 @@ export async function processImage(file: File): Promise<ProcessedDocument> {
       }
     );
 
-    const content = text.trim();
+    // Sanitize the extracted text
+    const sanitizedText = TextSanitizer.sanitize(text);
     
-    if (!content) {
-      throw new DocumentProcessingError('No text content found in image');
+    // Validate the sanitized text
+    const validationError = TextSanitizer.validateText(sanitizedText);
+    if (validationError) {
+      throw new DocumentProcessingError(validationError);
     }
-
+    
     return {
-      content,
+      content: sanitizedText,
       metadata: {
         fileName: file.name,
         fileType: file.type as any,
@@ -31,9 +36,8 @@ export async function processImage(file: File): Promise<ProcessedDocument> {
       }
     };
   } catch (error) {
-    console.error('Image Processing Error:', error);
-    throw new DocumentProcessingError(
-      error instanceof Error ? error.message : 'Failed to process image'
-    );
+    const errorMessage = error instanceof Error ? error.message : 'Failed to process image';
+    toast.error(errorMessage);
+    throw new DocumentProcessingError(errorMessage);
   }
 }

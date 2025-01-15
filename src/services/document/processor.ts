@@ -1,9 +1,10 @@
-import { ProcessedDocument, ProcessingOptions, SupportedFileType } from './types';
+import { ProcessedDocument, ProcessingOptions } from './types';
 import { validateFile } from './validator';
 import { processPDF } from './processors/pdf';
 import { processWord } from './processors/office';
 import { processImage } from './processors/image';
 import { DocumentProcessingError } from './errors';
+import { toast } from 'react-hot-toast';
 
 export async function processDocument(
   file: File,
@@ -11,13 +12,12 @@ export async function processDocument(
 ): Promise<ProcessedDocument> {
   try {
     // Validate file first
-    validateFile(file, options);
+    validateFile(file);
 
     // Process based on file type
-    const fileType = file.type as SupportedFileType;
     let result: ProcessedDocument;
 
-    switch (fileType) {
+    switch (file.type) {
       case 'application/pdf':
         result = await processPDF(file);
         break;
@@ -38,14 +38,14 @@ export async function processDocument(
           content: await file.text(),
           metadata: {
             fileName: file.name,
-            fileType: fileType,
+            fileType: file.type,
             fileSize: file.size
           }
         };
         break;
 
       default:
-        throw new DocumentProcessingError(`Unsupported file type: ${fileType}`);
+        throw new DocumentProcessingError(`Unsupported file type: ${file.type}`);
     }
 
     // Validate result
@@ -55,11 +55,13 @@ export async function processDocument(
 
     return result;
   } catch (error) {
-    if (error instanceof DocumentProcessingError) {
-      throw error;
-    }
-    throw new DocumentProcessingError(
-      `Failed to process document: ${error instanceof Error ? error.message : 'Unknown error'}`
+    // Show error toast
+    toast.error(
+      error instanceof Error 
+        ? error.message 
+        : 'Failed to process document'
     );
+    
+    throw error;
   }
 }

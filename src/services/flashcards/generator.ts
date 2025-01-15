@@ -1,27 +1,30 @@
 import { aiService } from '../ai';
 import { Flashcard } from '../../types/flashcard';
-
-export class FlashcardGenerationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'FlashcardGenerationError';
-  }
-}
+import { FlashcardGenerationError } from './errors';
+import { parseFlashcardResponse } from './parser';
+import { validateContent, validateNumCards } from './validator';
+import { createFlashcardPrompt } from './prompt';
 
 export async function generateFlashcards(
   content: string,
   numCards?: number
 ): Promise<Flashcard[]> {
-  if (!content.trim()) {
-    throw new FlashcardGenerationError('Content is required');
-  }
-
   try {
+    // Validate inputs
+    validateContent(content);
+    validateNumCards(numCards);
+
+    // Generate flashcards
     const response = await aiService.generateFlashcards({
       content: content.trim(),
       numCards: numCards && numCards > 0 ? numCards : undefined
     });
 
+    if (!response?.text) {
+      throw new FlashcardGenerationError('No response received from AI service');
+    }
+
+    // Parse and validate response
     const flashcards = parseFlashcardResponse(response.text);
     
     if (flashcards.length === 0) {
@@ -31,50 +34,13 @@ export async function generateFlashcards(
     return flashcards;
   } catch (error) {
     console.error('Flashcard generation error:', error);
-    throw new FlashcardGenerationError(
-      error instanceof Error ? error.message : 'Failed to generate flashcards'
-    );
-  }
-}
-
-function parseFlashcardResponse(response: string): Flashcard[] {
-  try {
-    // Find JSON content in the response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Invalid response format: No JSON found');
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]);
     
-    if (!Array.isArray(parsed.flashcards)) {
-      throw new Error('Invalid response format: Missing flashcards array');
+    if (error instanceof FlashcardGenerationError) {
+      throw error;
     }
-
-    return parsed.flashcards.map((card: any, index: number) => {
-      if (!card.front || !card.back) {
-        throw new Error(`Invalid flashcard format at index ${index}`);
-      }
-
-      return {
-        id: crypto.randomUUID(),
-        front: sanitizeContent(card.front),
-        back: sanitizeContent(card.back),
-        order: index
-      };
-    });
-  } catch (error) {
-    throw new Error(
-      `Failed to parse flashcard response: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`
+    
+    throw new FlashcardGenerationError(
+      'Failed to generate flashcards. Please try again with different content.'
     );
   }
-}
-
-function sanitizeContent(content: string): string {
-  return content
-    .trim()
-    .replace(/\\n/g, '\n')
-    .replace(/\s+/g, ' ');
 }

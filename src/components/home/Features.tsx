@@ -51,7 +51,8 @@ const Features = () => {
               <input
                 type="file"
                 className="hidden"
-                accept=".pdf,.txt,.doc,.docx"
+                // accept=".pdf,.txt,.doc,.docx"
+                accept=".txt, .pdf"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleQuizGeneration(file);

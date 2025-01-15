@@ -25,11 +25,7 @@ const Hero = () => {
     if (user) {
       navigate('/dashboard');
     } else {
-      // Show a toast notification if user is not logged in
-      toast.error('Please sign in to continue', {
-        duration: 3000,
-        position: 'top-center',
-      });
+      navigate('/login');
     }
   };
 

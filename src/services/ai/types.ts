@@ -1,4 +1,7 @@
-import { QuizDifficulty, QuestionType } from '../../types';
+export interface AIError extends Error {
+  status?: number;
+  code?: string;
+}
 
 export interface AIServiceConfig {
   apiKey: string;
@@ -18,8 +21,8 @@ export interface AIServiceResponse {
 export interface QuizGenerationParams {
   content: string;
   numQuestions: number;
-  difficulty: QuizDifficulty;
-  questionType: QuestionType;
+  difficulty: string;
+  questionType: string;
 }
 
 export interface FlashcardGenerationParams {
@@ -29,7 +32,7 @@ export interface FlashcardGenerationParams {
 
 export interface AIService {
   generateQuiz: (params: QuizGenerationParams) => Promise<AIServiceResponse>;
+  generateFlashcards: (params: FlashcardGenerationParams) => Promise<AIServiceResponse>;
   generateEmbeddings: (text: string) => Promise<number[]>;
   askQuestion: (question: string, context: string) => Promise<string>;
-  generateFlashcards: (params: FlashcardGenerationParams) => Promise<AIServiceResponse>;
 }

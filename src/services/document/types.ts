@@ -1,10 +1,10 @@
 export type SupportedFileType = 
   | 'application/pdf'
   | 'text/plain'
-  | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // docx
-  | 'application/msword' // doc
-  | 'application/vnd.ms-powerpoint' // ppt
-  | 'application/vnd.openxmlformats-officedocument.presentationml.presentation' // pptx
+  | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  | 'application/msword'
+  | 'application/vnd.ms-powerpoint'
+  | 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
   | 'image/png'
   | 'image/jpeg'
   | 'image/webp';
@@ -20,6 +20,7 @@ export interface ProcessedDocument {
 }
 
 export interface ProcessingOptions {
-  maxFileSize?: number; // in bytes
+  maxFileSize?: number;
   allowedTypes?: SupportedFileType[];
+  onProgress?: (progress: number) => void;
 }

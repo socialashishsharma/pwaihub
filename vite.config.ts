@@ -5,24 +5,30 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    exclude: ['lucide-react']
+    include: ['react', 'react-dom', 'react-hot-toast'],
+    exclude: ['pdfjs-dist/build/pdf.worker.min.js', 'lucide-react'],
+    esbuildOptions: {
+      mainFields: ['module', 'main']
+    }
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      'react': path.resolve(__dirname, 'node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom')
     }
-  },
-  optimizeDeps: {
-    include: ['pdfjs-dist/build/pdf.worker.min.js']
   },
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          pdfjs: ['pdfjs-dist'],
-          pdfworker: ['pdfjs-dist/build/pdf.worker.min.js'],
+          pdfjs: ['pdfjs-dist']
         }
       }
+    },
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
     }
   },
   server: {
